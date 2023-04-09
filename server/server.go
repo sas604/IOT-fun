@@ -77,7 +77,7 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	options := MQTT.NewClientOptions().AddBroker("tcp://localhost:1883")
+	options := MQTT.NewClientOptions().AddBroker("tcp://192.168.1.106:1883")
 	options.SetUsername("pi")
 	options.SetPassword("boopyou")
 	options.SetOrderMatters(false)
