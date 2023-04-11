@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/joho/godotenv"
@@ -17,30 +17,31 @@ import (
 )
 
 type SensorData struct {
-	name     string
-	location string
-	hum      string
-	temp     string
+	Temp float32 `json:"temp"`
+	Hum  float32 `json:"hum"`
+	CO   float32 `json:"co"`
 }
 
 func writeToDb(client influxdb2.Client, s SensorData) {
 	// get non-blocking write client
 	writeApi := client.WriteAPI("me", "iot-fun")
-	writeApi.WriteRecord(fmt.Sprintf("sht-31,controller=main,sensor=%s,location=%s temp=%s,hum=%s", s.name, s.location, s.temp, s.hum))
+	writeApi.WriteRecord(fmt.Sprintf("sht-31,controller=main,sensor=sht-31,location=%s temp=%f,hum=%f,co=%f", "any", s.Temp, s.Hum, s.CO))
 	writeApi.Flush()
 }
 
 var msgH MQTT.MessageHandler = func(c MQTT.Client, m MQTT.Message) {
 
-	values := strings.Split(string(m.Payload()), ",")
-	data := SensorData{
-		name:     "sht-31",
-		location: "any",
-		temp:     values[0],
-		hum:      values[1],
+	fmt.Println(m)
+	var mes SensorData
+	err := json.Unmarshal([]byte(m.Payload()), &mes)
+	if err != nil {
+		fmt.Print(err.Error())
+
 	}
 
-	writeToDb(db, data)
+	fmt.Println(mes)
+
+	writeToDb(db, mes)
 
 }
 var db influxdb2.Client
@@ -82,8 +83,7 @@ func main() {
 	options.SetPassword("boopyou")
 	options.SetOrderMatters(false)
 	options.OnConnect = func(c MQTT.Client) {
-		c.Subscribe("test/temperature", 0, msgH)
-		c.Subscribe("test/humidity", 0, msgH)
+		c.Subscribe("mush/sensor-group/mesurments", 0, msgH)
 	}
 	client := MQTT.NewClient(options)
 
