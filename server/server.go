@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -17,9 +18,51 @@ import (
 )
 
 type SensorData struct {
-	Temp float32 `json:"temp"`
-	Hum  float32 `json:"hum"`
-	CO   float32 `json:"co"`
+	Temp float64 `json:"temp"`
+	Hum  float64 `json:"hum"`
+	CO   float64 `json:"co"`
+}
+
+func monitorMeasurement(client influxdb2.Client, ch chan SensorData) {
+	for range time.Tick(time.Second * 5) {
+		queryAPI := client.QueryAPI("me")
+		fluxQuery := fmt.Sprintf(`from(bucket: "iot-fun")
+		|> range(start: -1h)
+		|> filter(fn: (r) => r["_measurement"] == "sht-31")
+		|> filter(fn: (r) => r["_field"] == "co" or r["_field"] == "hum" or r["_field"] == "temp")
+		|> median()`)
+		result, err := queryAPI.Query(context.Background(), fluxQuery)
+		if err != nil {
+			// handle error
+			fmt.Println(err)
+		}
+
+		var resultPoints SensorData
+		for result.Next() {
+			switch field := result.Record().Field(); field {
+			case "hum":
+				resultPoints.Hum = result.Record().Value().(float64)
+			case "temp":
+				resultPoints.Temp = result.Record().Value().(float64)
+			case "co":
+				resultPoints.CO = result.Record().Value().(float64)
+			default:
+				fmt.Printf("unrecognized field %s.\n", field)
+
+			}
+
+		}
+		fmt.Println("sending", resultPoints)
+		ch <- resultPoints
+	}
+}
+
+func handleMeasurementReadings(ch chan SensorData) {
+	for {
+		v := <-ch
+		time.Sleep(time.Second * 3)
+		fmt.Println("reciving", v)
+	}
 }
 
 func writeToDb(client influxdb2.Client, s SensorData) {
@@ -30,16 +73,12 @@ func writeToDb(client influxdb2.Client, s SensorData) {
 }
 
 var msgH MQTT.MessageHandler = func(c MQTT.Client, m MQTT.Message) {
-
-	fmt.Println(m)
 	var mes SensorData
 	err := json.Unmarshal([]byte(m.Payload()), &mes)
 	if err != nil {
 		fmt.Print(err.Error())
 
 	}
-
-	fmt.Println(mes)
 
 	writeToDb(db, mes)
 
@@ -92,6 +131,10 @@ func main() {
 	} else {
 		fmt.Printf("Connected to server \n")
 	}
+	mes := make(chan SensorData)
+	go monitorMeasurement(db, mes)
+	go handleMeasurementReadings(mes)
+
 	<-c
 
 }
