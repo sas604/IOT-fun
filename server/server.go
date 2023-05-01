@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -58,10 +59,18 @@ func monitorMeasurement(client influxdb2.Client, ch chan SensorData) {
 }
 
 func handleMeasurementReadings(ch chan SensorData) {
+	var err error
+	tempTarget, err := strconv.ParseFloat(os.Getenv("TARGET_TEMP"), 64)
+	// humTarget, err := strconv.ParseFloat(os.Getenv("TARGET_HUM"), 64)
+	// coTarget, err := strconv.ParseFloat(os.Getenv("TARGET_CO"), 64)
+	if err != nil {
+		fmt.Printf("Handle cversion error")
+	}
+
 	for {
 		v := <-ch
-		time.Sleep(time.Second * 3)
-		fmt.Println("reciving", v)
+		if v.Temp > tempTarget {
+		}
 	}
 }
 
@@ -105,6 +114,7 @@ func connectToInfluxDb() (influxdb2.Client, error) {
 
 func main() {
 	err := godotenv.Load("../.env")
+	//p := MyPlug{}
 	if err != nil {
 		fmt.Print(err.Error())
 		log.Fatal("Error loading .env file")
