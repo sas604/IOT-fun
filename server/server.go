@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/sas604/IOT-fun/server/db"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -89,37 +89,35 @@ var msgH MQTT.MessageHandler = func(c MQTT.Client, m MQTT.Message) {
 
 	}
 
-	writeToDb(db, mes)
+	writeToDb(db.DB, mes)
 
 }
-var db influxdb2.Client
 
-func connectToInfluxDb() (influxdb2.Client, error) {
-	dbToken := os.Getenv("INFLUXDB_TOKEN")
-	if dbToken == "" {
-		return nil, errors.New("INFLUXDB_TOKEN must be set")
-	}
+// func connectToInfluxDb() (influxdb2.Client, error) {
+// 	dbToken := os.Getenv("INFLUXDB_TOKEN")
+// 	if dbToken == "" {
+// 		return nil, errors.New("INFLUXDB_TOKEN must be set")
+// 	}
 
-	dbURL := os.Getenv("INFLUXDB_URL")
-	if dbURL == "" {
-		return nil, errors.New("INFLUXDB_URL must be set")
-	}
-	client := influxdb2.NewClient(dbURL, dbToken)
+// 	dbURL := os.Getenv("INFLUXDB_URL")
+// 	if dbURL == "" {
+// 		return nil, errors.New("INFLUXDB_URL must be set")
+// 	}
+// 	client := influxdb2.NewClient(dbURL, dbToken)
 
-	//validate client connection health
-	_, err := client.Health(context.Background())
+// 	//validate client connection health
+// 	_, err := client.Health(context.Background())
 
-	return client, err
-}
+// 	return client, err
+// }
 
 func main() {
 	err := godotenv.Load("../.env")
-	//p := MyPlug{}
 	if err != nil {
 		fmt.Print(err.Error())
 		log.Fatal("Error loading .env file")
 	}
-	db, err = connectToInfluxDb()
+	err = db.ConnectToInfluxDb()
 	if err != nil {
 		fmt.Print(err.Error())
 		log.Fatal("Error loading .env file")
@@ -142,7 +140,7 @@ func main() {
 		fmt.Printf("Connected to server \n")
 	}
 	mes := make(chan SensorData)
-	go monitorMeasurement(db, mes)
+	go monitorMeasurement(db.DB, mes)
 	go handleMeasurementReadings(mes)
 
 	<-c
