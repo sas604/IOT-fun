@@ -40,11 +40,16 @@ mqtt_topic = 'mush/switch-group'
 
 def connected(client, userdata, flags, rc):
     print("connected")
-    client.subscribe(mqtt_topic + '/set')
+    client.publish(mqtt_topic + '/controllerStatus', 'online', True, 0)
     client.subscribe(mqtt_topic + '/setall')
+    client.subscribe(mqtt_topic+'/set/hum')
+    client.subscribe(mqtt_topic+'/set/fun')
+    client.subscribe(mqtt_topic+'/set/light')
+    client.subscribe(mqtt_topic+'/set/heat')
 
 
 def handleAll(cient, topic, message):
+    print(message)
     for pin in pins:
         if (message == 'off'):
             print(pins[pin].value)
@@ -66,11 +71,18 @@ def message(client, topic, message):
     except ValueError:
         print("Error parsing message")
     if ('switch' in msg and msg['switch'] in switches):
+        print('message: set ' + msg['switch'] + ' to ' + msg['value'])
         if (msg['value'] == 'on'):
             pins[switches[msg['switch']]].value = False
+            client.publish(mqtt_topic + '/stateChangeComplete/' +
+                           msg['switch'], json.dumps({'status': 'success', 'state': 'on'}), False, 0)
         if (msg['value'] == 'off'):
-            print(pins)
+            client.publish(mqtt_topic + '/stateChangeComplete/' +
+                           msg['switch'], json.dumps({'status': 'success', 'state': 'off'}), False, 0)
             pins[switches[msg['switch']]].value = True
+        else:
+            client.publish(mqtt_topic + '/stateChangeComplete/' + msg['switch'], json.dumps(
+                {'status': 'error', 'state': 'error setting state'}), False, 0)
 
 
 wifi.radio.connect(secrets.network_id, secrets.password)
@@ -84,8 +96,13 @@ mqtt_client = MQTT.MQTT(
     socket_pool=pool,
 )
 mqtt_client.on_connect = connected
-mqtt_client.on_message = message
+mqtt_client.on_message = lambda: print('bla')
 mqtt_client.add_topic_callback('mush/switch-group/setall', handleAll)
+for name in switches:
+    # using lambda here since passing the same function causing the client do disconect
+    mqtt_client.add_topic_callback(
+        mqtt_topic+'/set/' + name, lambda c, t, m: message(c, t, m))
+mqtt_client.will_set(mqtt_topic + '/controllerStatus', 'ofline', 0, True)
 mqtt_client.connect()
 
 
