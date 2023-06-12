@@ -19,9 +19,10 @@ for x in switches:
     pin.direction = digitalio.Direction.OUTPUT
     pin.value = True
     pins[switches[x]] = pin
-
+pins["TX"] = digitalio.DigitalInOut(getattr(board, "TX"))
+pins['TX'].direction = digitalio.Direction.OUTPUT
+pins['TX'].value = True
 btn = digitalio.DigitalInOut(board.BOOT0)
-print(board.BOOT0)
 btn.direction = digitalio.Direction.INPUT
 btn.pull = digitalio.Pull.UP
 
@@ -40,12 +41,8 @@ mqtt_topic = 'mush/switch-group'
 
 def connected(client, userdata, flags, rc):
     print("connected")
-    client.publish(mqtt_topic + '/controllerStatus', 'online', True, 0)
+
     client.subscribe(mqtt_topic + '/setall')
-    client.subscribe(mqtt_topic+'/set/hum')
-    client.subscribe(mqtt_topic+'/set/fun')
-    client.subscribe(mqtt_topic+'/set/light')
-    client.subscribe(mqtt_topic+'/set/heat')
 
 
 def handleAll(cient, topic, message):
@@ -64,6 +61,26 @@ def handlBtnPress():
         pins[pin].value = not pins[pin].value
 
 
+def humHandler(client, topic, message):
+    print('Recived hum')
+    try:
+        msg = json.loads(message)
+    except ValueError:
+        print("Error parsing message")
+    print(msg)
+    if (msg['value'] == 'on'):
+        pins[switches[msg['switch']]].value = False
+        time.sleep(5)
+        pins['TX'].value = False
+        print('enter')
+        time.sleep(0.5)
+        print('Leave')
+        pins['TX'].value = True
+
+    if (msg['value'] == 'off'):
+        pins[switches[msg['switch']]].value = True
+
+
 def message(client, topic, message):
     print("New message on topic {0}: {1}".format(topic, message))
     try:
@@ -74,15 +91,9 @@ def message(client, topic, message):
         print('message: set ' + msg['switch'] + ' to ' + msg['value'])
         if (msg['value'] == 'on'):
             pins[switches[msg['switch']]].value = False
-            client.publish(mqtt_topic + '/stateChangeComplete/' +
-                           msg['switch'], json.dumps({'status': 'success', 'state': 'on'}), False, 0)
+
         if (msg['value'] == 'off'):
-            client.publish(mqtt_topic + '/stateChangeComplete/' +
-                           msg['switch'], json.dumps({'status': 'success', 'state': 'off'}), False, 0)
             pins[switches[msg['switch']]].value = True
-        else:
-            client.publish(mqtt_topic + '/stateChangeComplete/' + msg['switch'], json.dumps(
-                {'status': 'error', 'state': 'error setting state'}), False, 0)
 
 
 wifi.radio.connect(secrets.network_id, secrets.password)
@@ -94,16 +105,22 @@ mqtt_client = MQTT.MQTT(
     username="pi",
     password="boopyou",
     socket_pool=pool,
+    client_id='qtpi'
 )
+
 mqtt_client.on_connect = connected
-mqtt_client.on_message = lambda: print('bla')
+mqtt_client.on_message = message
 mqtt_client.add_topic_callback('mush/switch-group/setall', handleAll)
-for name in switches:
-    # using lambda here since passing the same function causing the client do disconect
-    mqtt_client.add_topic_callback(
-        mqtt_topic+'/set/' + name, lambda c, t, m: message(c, t, m))
 mqtt_client.will_set(mqtt_topic + '/controllerStatus', 'ofline', 0, True)
+for name in switches:
+    if name == "hum":
+        mqtt_client.add_topic_callback(mqtt_topic+'/set/' + name, humHandler)
+        continue
+    mqtt_client.add_topic_callback(mqtt_topic+'/set/' + name, message)
 mqtt_client.connect()
+
+mqtt_client.publish(mqtt_topic + '/controllerStatus', 'online', True, 0)
+mqtt_client.subscribe(mqtt_topic+'/set/+')
 
 
 while True:
@@ -113,9 +130,9 @@ while True:
         if (cur_btn_state and not prev_btn_state):
             handlBtnPress()
         prev_btn_state = cur_btn_state
+        time.sleep(1)
     except (ValueError, RuntimeError, OSError, ConnectionError) as e:
         print("Network error, reconnecting\n", str(e))
         time.sleep(10)
         supervisor.reload()
         continue
-    time.sleep(0.1)
