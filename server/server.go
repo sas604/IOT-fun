@@ -13,6 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/sas604/IOT-fun/server/db"
+	"github.com/sas604/IOT-fun/server/plug"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -24,11 +25,27 @@ type SensorData struct {
 	CO   float64 `json:"co"`
 }
 
-func monitorMeasurement(client influxdb2.Client, ch chan SensorData) {
+func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
+
+	tempTarget, err := strconv.ParseFloat(os.Getenv("TARGET_TEMP"), 64)
+	if err != nil {
+		fmt.Printf("Handle conversion error")
+	}
+	humTarget, err := strconv.ParseFloat(os.Getenv("TARGET_HUM"), 64)
+	if err != nil {
+		fmt.Printf("Handle conversion error")
+	}
+	coTarget, err := strconv.ParseFloat(os.Getenv("TARGET_CO"), 64)
+
+	if err != nil {
+		fmt.Printf("Handle conversion error")
+	}
+
+	p := plug.NewPlug(d, c, map[string]string{"hum": "off", "heat": "off", "fan": "off", "light": "off"})
 	for range time.Tick(time.Second * 5) {
-		queryAPI := client.QueryAPI("me")
+		queryAPI := d.QueryAPI("me")
 		fluxQuery := fmt.Sprintf(`from(bucket: "iot-fun")
-		|> range(start: -1h)
+		|> range(start: -1m)
 		|> filter(fn: (r) => r["_measurement"] == "sht-31")
 		|> filter(fn: (r) => r["_field"] == "co" or r["_field"] == "hum" or r["_field"] == "temp")
 		|> median()`)
@@ -37,40 +54,44 @@ func monitorMeasurement(client influxdb2.Client, ch chan SensorData) {
 			// handle error
 			fmt.Println(err)
 		}
-
-		var resultPoints SensorData
 		for result.Next() {
 			switch field := result.Record().Field(); field {
 			case "hum":
-				resultPoints.Hum = result.Record().Value().(float64)
+				v := result.Record().Value().(float64)
+				if v > humTarget && p.Switches["hum"] == "on" {
+					fmt.Println("set hum to off")
+					p.SetSwitchStates("hum", "off")
+				}
+				if v < humTarget && p.Switches["hum"] == "off" {
+					fmt.Println("set hum to on")
+					p.SetSwitchStates("hum", "on")
+				}
+
 			case "temp":
-				resultPoints.Temp = result.Record().Value().(float64)
+
+				v := result.Record().Value().(float64)
+				fmt.Println("temp is ", v, "State is", p.Switches["heat"])
+				if v > tempTarget && p.Switches["heat"] == "on" {
+					fmt.Println("set heat to off ")
+					p.SetSwitchStates("heat", "off")
+				}
+				if v < tempTarget && p.Switches["heat"] == "off" {
+					fmt.Println("set heat to on ")
+					p.SetSwitchStates("heat", "on")
+				}
 			case "co":
-				resultPoints.CO = result.Record().Value().(float64)
+				v := result.Record().Value().(float64)
+				if v > coTarget {
+					fmt.Println(v, coTarget)
+				}
+
 			default:
 				fmt.Printf("unrecognized field %s.\n", field)
 
 			}
 
 		}
-		fmt.Println("sending", resultPoints)
-		ch <- resultPoints
-	}
-}
 
-func handleMeasurementReadings(ch chan SensorData) {
-	var err error
-	tempTarget, err := strconv.ParseFloat(os.Getenv("TARGET_TEMP"), 64)
-	// humTarget, err := strconv.ParseFloat(os.Getenv("TARGET_HUM"), 64)
-	// coTarget, err := strconv.ParseFloat(os.Getenv("TARGET_CO"), 64)
-	if err != nil {
-		fmt.Printf("Handle cversion error")
-	}
-
-	for {
-		v := <-ch
-		if v.Temp > tempTarget {
-		}
 	}
 }
 
@@ -92,24 +113,6 @@ var msgH MQTT.MessageHandler = func(c MQTT.Client, m MQTT.Message) {
 	writeToDb(db.DB, mes)
 
 }
-
-// func connectToInfluxDb() (influxdb2.Client, error) {
-// 	dbToken := os.Getenv("INFLUXDB_TOKEN")
-// 	if dbToken == "" {
-// 		return nil, errors.New("INFLUXDB_TOKEN must be set")
-// 	}
-
-// 	dbURL := os.Getenv("INFLUXDB_URL")
-// 	if dbURL == "" {
-// 		return nil, errors.New("INFLUXDB_URL must be set")
-// 	}
-// 	client := influxdb2.NewClient(dbURL, dbToken)
-
-// 	//validate client connection health
-// 	_, err := client.Health(context.Background())
-
-// 	return client, err
-// }
 
 func main() {
 	err := godotenv.Load("../.env")
@@ -139,10 +142,7 @@ func main() {
 	} else {
 		fmt.Printf("Connected to server \n")
 	}
-	mes := make(chan SensorData)
-	go monitorMeasurement(db.DB, mes)
-	go handleMeasurementReadings(mes)
-
+	go monitorMeasurement(db.DB, client)
 	<-c
 
 }
