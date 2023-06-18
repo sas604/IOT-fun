@@ -1,65 +1,88 @@
 package plug
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"time"
+
+	"github.com/looplab/fsm"
+	"github.com/sas604/IOT-fun/server/db"
+	mqttclient "github.com/sas604/IOT-fun/server/mqttClient"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
 type Plug struct {
 	BaseTopic string
-	Switches  map[string]string
-	db        influxdb2.Client
-	client    MQTT.Client
+	Switches  map[string]Switch
 	PlugState string
 }
 
-func (p *Plug) GetSwitchState(id string) {
-	fmt.Println(p.Switches[id])
+type Switch struct {
+	id  string
+	FSM *fsm.FSM
 }
 
-func (p *Plug) SetSwitchStates(id string, state string) {
-	fmt.Println("id", id, state)
-	if state != "off" && state != "on" {
-		return
+func NewSwitch(id string, state string) Switch {
+	s := Switch{
+		id: id,
 	}
-	if p.Switches[id] == state {
-		return
-	}
-	m, err := json.Marshal(map[string]string{"switch": id, "value": state})
+	s.FSM = fsm.NewFSM(
+		"initial",
+		fsm.Events{
+			{Name: "off", Src: []string{"on", "initial"}, Dst: "off"},
+			{Name: "on", Src: []string{"off", "initial"}, Dst: "on"},
+		},
+		fsm.Callbacks{
+			"enter_state": func(ctx context.Context, e *fsm.Event) { s.enterState(e) },
+		},
+	)
+
+	s.FSM.Event(context.Background(), state)
+
+	return s
+}
+func (s *Switch) enterState(e *fsm.Event) {
+	fmt.Println(e.Dst)
+	writeApi := db.DB.WriteAPIBlocking("me", "iot-fun")
+
+	p := influxdb2.NewPoint("plug", map[string]string{"outlet": s.id}, map[string]interface{}{"state": e.Dst}, time.Now())
+
+	writeApi.WritePoint(context.Background(), p)
+	m, err := json.Marshal(map[string]string{"switch": s.id, "value": e.Dst})
 	if err != nil {
 		return
 	}
-	p.client.Publish("mush/switch-group/set/"+id, 0, true, m)
-	p.Switches[id] = state
+	mqttclient.Client.Publish("mush/switch-group/set/"+s.id, 0, true, m)
+
+	fmt.Printf("The switch for %s is %s\n", s.id, e.Dst)
 }
 
-var onTransitionResult MQTT.MessageHandler = func(c MQTT.Client, m MQTT.Message) {
-	fmt.Println(string(m.Payload()))
+func (p *Plug) SetSwitchStates(id string, state string) {
+	if p.Switches[id].FSM.Cannot(state) {
+		return
+	}
+
+	p.Switches[id].FSM.Event(context.Background(), state)
+
 }
 
-func NewPlug(db influxdb2.Client, c MQTT.Client, s map[string]string) Plug {
+func NewPlug(s map[string]string) Plug {
 	p := Plug{
-		Switches:  s,
+		Switches:  make(map[string]Switch),
 		BaseTopic: "mush/switch-group",
-		db:        db,
-		client:    c,
 		PlugState: "offline",
 	}
 
-	c.Subscribe(p.BaseTopic+"/controllerStatus", 0, func(c MQTT.Client, m MQTT.Message) {
-		fmt.Println(string(m.Payload()))
-		p.PlugState = string(m.Payload())
-	})
-	for id := range p.Switches {
-		jm, _ := json.Marshal(map[string]string{"switch": id, "value": p.Switches[id]})
-		c.Publish(p.BaseTopic+"/set/"+id, 0, true, jm)
-
+	for k, v := range s {
+		p.Switches[k] = NewSwitch(k, v)
 	}
 
-	c.Subscribe("mush/switch-group/transition", 0, onTransitionResult)
+	mqttclient.Client.Subscribe(p.BaseTopic+"/controllerStatus", 0, func(c MQTT.Client, m MQTT.Message) {
+		p.PlugState = string(m.Payload())
+	})
+
 	return p
 }
