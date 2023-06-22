@@ -3,7 +3,7 @@ package plug
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+
 	"time"
 
 	"github.com/looplab/fsm"
@@ -39,13 +39,10 @@ func NewSwitch(id string, state string) Switch {
 			"enter_state": func(ctx context.Context, e *fsm.Event) { s.enterState(e) },
 		},
 	)
-
 	s.FSM.Event(context.Background(), state)
-
 	return s
 }
 func (s *Switch) enterState(e *fsm.Event) {
-	fmt.Println(e.Dst)
 	writeApi := db.DB.WriteAPIBlocking("me", "iot-fun")
 
 	p := influxdb2.NewPoint("plug", map[string]string{"outlet": s.id}, map[string]interface{}{"state": e.Dst}, time.Now())
@@ -57,7 +54,6 @@ func (s *Switch) enterState(e *fsm.Event) {
 	}
 	mqttclient.Client.Publish("mush/switch-group/set/"+s.id, 0, true, m)
 
-	fmt.Printf("The switch for %s is %s\n", s.id, e.Dst)
 }
 
 func (p *Plug) SetSwitchStates(id string, state string) {
@@ -83,6 +79,5 @@ func NewPlug(s map[string]string) Plug {
 	mqttclient.Client.Subscribe(p.BaseTopic+"/controllerStatus", 0, func(c MQTT.Client, m MQTT.Message) {
 		p.PlugState = string(m.Payload())
 	})
-
 	return p
 }

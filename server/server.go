@@ -36,7 +36,7 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 	}
 
 	p := plug.NewPlug(map[string]string{"hum": "off", "heat": "off", "fan": "off", "light": "off"})
-	for range time.Tick(time.Second * 10) {
+	for range time.Tick(time.Second * 60) {
 		queryAPI := d.QueryAPI("me")
 		fluxQuery := fmt.Sprintf(`from(bucket: "iot-fun")
 		|> range(start: -1m)
@@ -46,6 +46,7 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 		result, err := queryAPI.Query(context.Background(), fluxQuery)
 		if err != nil {
 			// handle error
+			fmt.Println("Error in DB query : ")
 			fmt.Println(err)
 		}
 		for result.Next() {
@@ -76,7 +77,7 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 			// 	}
 
 			default:
-				fmt.Printf("unrecognized field %s.\n", field)
+				//fmt.Printf("unrecognized field %s.\n", field)
 
 			}
 
