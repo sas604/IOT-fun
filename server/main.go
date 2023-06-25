@@ -14,6 +14,7 @@ import (
 	"github.com/sas604/IOT-fun/server/db"
 	m "github.com/sas604/IOT-fun/server/mqttClient"
 	"github.com/sas604/IOT-fun/server/plug"
+	"github.com/sas604/IOT-fun/server/server"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -21,6 +22,7 @@ import (
 
 func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 
+	fmt.Println("Automation runing")
 	tempTarget, err := strconv.ParseFloat(os.Getenv("TARGET_TEMP"), 64)
 	if err != nil {
 		fmt.Printf("Handle conversion error")
@@ -92,6 +94,8 @@ func main() {
 		fmt.Print(err.Error())
 		log.Fatal("Error loading .env file")
 	}
+	srv := server.NewServer()
+	fmt.Println("starting server")
 	err = db.ConnectToInfluxDb()
 	if err != nil {
 		fmt.Print(err.Error())
@@ -102,6 +106,8 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go monitorMeasurement(db.DB, m.Client)
+
 	<-c
+	server.KillServer(srv)
 
 }
