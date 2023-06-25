@@ -1,10 +1,11 @@
 import { styled } from 'styled-components';
 import { SwitchProps } from './Switch';
 import { SwitchList } from './SwitchList';
+import { useQuery } from 'react-query';
 
 const demoSwitch: SwitchProps[] = [
   {
-    state: true,
+    state: 'on',
     autoControl: true,
     value: 36,
     target: 25,
@@ -12,7 +13,7 @@ const demoSwitch: SwitchProps[] = [
     unit: 'C',
   },
   {
-    state: false,
+    state: 'off',
     autoControl: true,
     value: 75,
     target: 90,
@@ -22,11 +23,27 @@ const demoSwitch: SwitchProps[] = [
 ];
 
 function Dashboard() {
+  const { data, isLoading, isError } = useQuery('switches', async () => {
+    const res = await fetch('/api/switches');
+    if (!res.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return res.json();
+  });
+
+  if (isLoading) {
+    return (
+      <DashBoardStyle>
+        <h1>Dashboard</h1>
+        <p css="color:white">Loading....</p>
+      </DashBoardStyle>
+    );
+  }
   return (
     <DashBoardStyle>
       <h1>Dashboard</h1>
       <div></div>
-      <SwitchList switches={demoSwitch} />
+      <SwitchList switches={data} />
     </DashBoardStyle>
   );
 }

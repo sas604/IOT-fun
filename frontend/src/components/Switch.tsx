@@ -1,9 +1,8 @@
 import { styled } from 'styled-components';
 import { ImSwitch } from 'react-icons/im';
-import { theme } from '../styles/Theme';
 
 export type SwitchProps = {
-  state: boolean;
+  state: 'off' | 'on';
   measurment: string;
   value: number;
   autoControl: boolean;
@@ -26,10 +25,11 @@ const Switch: React.FC<SwitchProps> = ({
         <div>
           <p>Current Value: </p>
           <p className="switch-value">
-            {value} {unit}
+            {value}
+            {unit}
           </p>
         </div>
-        <SwitchToggleStyle $active={state}>
+        <SwitchToggleStyle $active={state === 'on'}>
           <button>
             <ImSwitch></ImSwitch>
           </button>
@@ -37,7 +37,7 @@ const Switch: React.FC<SwitchProps> = ({
             id={measurment + '-switch'}
             onChange={(e) => console.log(e)}
             type="checkbox"
-            checked={state}
+            checked={state === 'on'}
           />
         </SwitchToggleStyle>
       </div>
@@ -50,7 +50,7 @@ const Switch: React.FC<SwitchProps> = ({
         <div>
           <span css="font-weight: 700">Automation Target Value: </span>
           <span>
-            {value}
+            {target}
             {unit}
           </span>
         </div>

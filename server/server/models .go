@@ -8,12 +8,12 @@ import (
 )
 
 type SwitchWithState struct {
-	State       string
-	Measurment  string
-	Value       int
-	AutoControl bool
-	Target      int
-	Unit        string
+	State       string `json:"state"`
+	Measurment  string `json:"measurment"`
+	Value       int    `json:"value"`
+	AutoControl bool   `json:"autoControl"`
+	Target      int    `json:"target"`
+	Unit        string `json:"unit"`
 }
 
 var measurmentToMesMap = map[string]string{
