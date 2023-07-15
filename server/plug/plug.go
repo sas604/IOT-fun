@@ -45,7 +45,7 @@ func NewSwitch(id string, state string) Switch {
 func (s *Switch) enterState(e *fsm.Event) {
 	writeApi := db.DB.WriteAPIBlocking("me", "iot-fun")
 
-	p := influxdb2.NewPoint("plug", map[string]string{"outlet": s.id}, map[string]interface{}{"state": e.Dst}, time.Now())
+	p := influxdb2.NewPoint("sht-31", map[string]string{"sensor": "sht-31", "outlet": s.id}, map[string]interface{}{"state": e.Dst}, time.Now())
 
 	writeApi.WritePoint(context.Background(), p)
 	m, err := json.Marshal(map[string]string{"switch": s.id, "value": e.Dst})

@@ -25,7 +25,7 @@ const Switch: React.FC<SwitchProps> = ({
         <div>
           <p>Current Value: </p>
           <p className="switch-value">
-            {value}
+            {Math.round(value * 10) / 10}
             {unit}
           </p>
         </div>

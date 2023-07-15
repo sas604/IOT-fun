@@ -24,7 +24,7 @@ var msgH mqtt.MessageHandler = func(c mqtt.Client, m mqtt.Message) {
 
 	}
 	writeApi := db.DB.WriteAPI("me", "iot-fun")
-	writeApi.WriteRecord(fmt.Sprintf("sht-31,controller=main,sensor=sht-31,location=%s temp=%f,hum=%f,co=%f", "any", mes.Temp, mes.Hum, mes.CO))
+	writeApi.WriteRecord(fmt.Sprintf("sht-31,sensor=sht-31 temp=%f,hum=%f,co=%f", mes.Temp, mes.Hum, mes.CO))
 	writeApi.Flush()
 }
 

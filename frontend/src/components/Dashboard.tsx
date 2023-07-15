@@ -1,26 +1,7 @@
 import { styled } from 'styled-components';
-import { SwitchProps } from './Switch';
+
 import { SwitchList } from './SwitchList';
 import { useQuery } from 'react-query';
-
-const demoSwitch: SwitchProps[] = [
-  {
-    state: 'on',
-    autoControl: true,
-    value: 36,
-    target: 25,
-    measurment: 'Temperature',
-    unit: 'C',
-  },
-  {
-    state: 'off',
-    autoControl: true,
-    value: 75,
-    target: 90,
-    measurment: 'Humidity',
-    unit: '%',
-  },
-];
 
 function Dashboard() {
   const { data, isLoading, isError } = useQuery('switches', async () => {

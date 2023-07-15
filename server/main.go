@@ -37,12 +37,13 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 		fmt.Printf("Handle conversion error")
 	}
 
-	p := plug.NewPlug(map[string]string{"hum": "off", "heat": "off", "fan": "off", "light": "off"})
-	for range time.Tick(time.Second * 60) {
+	p := plug.NewPlug(map[string]string{"hum": "off", "temp": "off", "fan": "off", "light": "off"})
+	for range time.Tick(time.Second * 10) {
 		queryAPI := d.QueryAPI("me")
 		fluxQuery := fmt.Sprintf(`from(bucket: "iot-fun")
 		|> range(start: -1m)
 		|> filter(fn: (r) => r["_measurement"] == "sht-31")
+		|> filter(fn: (r) => r["sensor"] == "sht-31")
 		|> filter(fn: (r) => r["_field"] == "co" or r["_field"] == "hum" or r["_field"] == "temp")
 		|> median()`)
 		result, err := queryAPI.Query(context.Background(), fluxQuery)
@@ -66,11 +67,11 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 			case "temp":
 
 				v := result.Record().Value().(float64)
-				if v > tempTarget && p.Switches["heat"].FSM.Current() == "on" {
-					p.SetSwitchStates("heat", "off")
+				if v > tempTarget && p.Switches["temp"].FSM.Current() == "on" {
+					p.SetSwitchStates("temp", "off")
 				}
-				if v < tempTarget && p.Switches["heat"].FSM.Current() == "off" {
-					p.SetSwitchStates("heat", "on")
+				if v < tempTarget && p.Switches["temp"].FSM.Current() == "off" {
+					p.SetSwitchStates("temp", "on")
 				}
 			// case "co":
 			// 	v := result.Record().Value().(float64)
