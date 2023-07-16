@@ -8,14 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func handler(c *gin.Context) {
-
-	c.String(200, "S")
-}
-
 func NewServer() *http.Server {
 	router := gin.Default()
 	router.GET("/api/switches", GetAllSwitches)
+	router.POST("/api/switch", SetSwitch)
 
 	srv := &http.Server{
 		Addr:    ":8080",

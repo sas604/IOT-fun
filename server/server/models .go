@@ -16,9 +16,10 @@ type SwitchWithState struct {
 	AutoControl bool    `json:"autoControl"`
 	Target      int64   `json:"target"`
 	Unit        string  `json:"unit"`
+	Id          string  `json:"id"`
 }
 
-var measurmentToMesMap = map[string]string{
+var MeasurmentToMesMap = map[string]string{
 	"temp":  "Temperature",
 	"hum":   "Humidity",
 	"co":    "CO2",
@@ -42,8 +43,7 @@ func GetAllSwitchesWithState() ([]SwitchWithState, error) {
 	var res []SwitchWithState
 	for result.Next() {
 		key := result.Record().ValueByKey("outlet").(string)
-		m, ok := measurmentToMesMap[key]
-		fmt.Println(m, key)
+		m, ok := MeasurmentToMesMap[key]
 		if !ok {
 			continue
 		}
@@ -63,6 +63,7 @@ func GetAllSwitchesWithState() ([]SwitchWithState, error) {
 			State:       result.Record().Value().(string),
 			Measurment:  m,
 			AutoControl: true,
+			Id:          key,
 		}
 
 		switch key {

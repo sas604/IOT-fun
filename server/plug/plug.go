@@ -3,6 +3,7 @@ package plug
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"time"
 
@@ -25,7 +26,7 @@ type Switch struct {
 	FSM *fsm.FSM
 }
 
-func NewSwitch(id string, state string) Switch {
+func NewSwitch(id string) Switch {
 	s := Switch{
 		id: id,
 	}
@@ -39,10 +40,10 @@ func NewSwitch(id string, state string) Switch {
 			"enter_state": func(ctx context.Context, e *fsm.Event) { s.enterState(e) },
 		},
 	)
-	s.FSM.Event(context.Background(), state)
+
 	return s
 }
-func (s *Switch) enterState(e *fsm.Event) {
+func (s *Switch) enterState(e *fsm.Event) error {
 	writeApi := db.DB.WriteAPIBlocking("me", "iot-fun")
 
 	p := influxdb2.NewPoint("sht-31", map[string]string{"sensor": "sht-31", "outlet": s.id}, map[string]interface{}{"state": e.Dst}, time.Now())
@@ -50,19 +51,23 @@ func (s *Switch) enterState(e *fsm.Event) {
 	writeApi.WritePoint(context.Background(), p)
 	m, err := json.Marshal(map[string]string{"switch": s.id, "value": e.Dst})
 	if err != nil {
-		return
+		return err
 	}
 	mqttclient.Client.Publish("mush/switch-group/set/"+s.id, 0, true, m)
 
+	return nil
 }
 
-func (p *Plug) SetSwitchStates(id string, state string) {
+func (p *Plug) SetSwitchStates(id string, state string) error {
 	if p.Switches[id].FSM.Cannot(state) {
-		return
+		return errors.New("can't transition to this state")
 	}
 
-	p.Switches[id].FSM.Event(context.Background(), state)
+	return p.Switches[id].FSM.Event(context.Background(), state)
+}
 
+func (s *Switch) SetSwitchState(state string) error {
+	return s.FSM.Event(context.Background(), state)
 }
 
 func NewPlug(s map[string]string) Plug {
@@ -73,7 +78,8 @@ func NewPlug(s map[string]string) Plug {
 	}
 
 	for k, v := range s {
-		p.Switches[k] = NewSwitch(k, v)
+		p.Switches[k] = NewSwitch(k)
+		p.Switches[k].FSM.Event(context.Background(), v)
 	}
 
 	mqttclient.Client.Subscribe(p.BaseTopic+"/controllerStatus", 0, func(c MQTT.Client, m MQTT.Message) {
