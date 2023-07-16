@@ -9,7 +9,7 @@ const SwitchList: React.FC<SwitchList> = ({ switches }) => {
   return (
     <SwitchListStyles>
       {switches.map(
-        ({ state, measurment, value, target, autoControl, unit }) => (
+        ({ state, measurment, value, target, autoControl, unit, id }, idx) => (
           <li key={measurment}>
             <Switch
               state={state}
@@ -18,6 +18,8 @@ const SwitchList: React.FC<SwitchList> = ({ switches }) => {
               value={value}
               autoControl={autoControl}
               unit={unit}
+              id={id}
+              idx={idx}
             ></Switch>
           </li>
         )

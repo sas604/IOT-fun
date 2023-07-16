@@ -53,6 +53,7 @@ func (s *Switch) enterState(e *fsm.Event) error {
 	if err != nil {
 		return err
 	}
+
 	mqttclient.Client.Publish("mush/switch-group/set/"+s.id, 0, true, m)
 
 	return nil
