@@ -9,8 +9,8 @@ import supervisor
 
 switches = {
     'hum': 'A0',
-    'heat': 'A1',
-    'fan': 'A2',
+    'temp': 'A1',
+    'co': 'A2',
     'light': 'A3'
 }
 pins = {}

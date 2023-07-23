@@ -67,8 +67,9 @@ func GetAllSwitchesWithState() ([]SwitchWithState, error) {
 		}
 
 		switch key {
-		case "fan":
+		case "co":
 			s.Unit = "ppm"
+			s.AutoControl = false
 		case "hum":
 			s.Unit = "%"
 			h, err := strconv.ParseInt(os.Getenv("TARGET_HUM"), 0, 0)

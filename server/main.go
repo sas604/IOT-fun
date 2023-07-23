@@ -37,20 +37,21 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 		fmt.Printf("Handle conversion error")
 	}
 
-	p := plug.NewPlug(map[string]string{"hum": "off", "temp": "off", "fan": "off", "light": "off"})
+	p := plug.NewPlug(map[string]string{"hum": "off", "temp": "off", "co": "off", "light": "off"})
 	for range time.Tick(time.Second * 10) {
 		queryAPI := d.QueryAPI("me")
-		fluxQuery := fmt.Sprintf(`from(bucket: "iot-fun")
+		fluxQuery := `from(bucket: "iot-fun")
 		|> range(start: -1m)
 		|> filter(fn: (r) => r["_measurement"] == "sht-31")
 		|> filter(fn: (r) => r["sensor"] == "sht-31")
 		|> filter(fn: (r) => r["_field"] == "co" or r["_field"] == "hum" or r["_field"] == "temp")
-		|> median()`)
+		|> median()`
 		result, err := queryAPI.Query(context.Background(), fluxQuery)
 		if err != nil {
 			// handle error
 			fmt.Println("Error in DB query : ")
 			fmt.Println(err)
+			return
 		}
 		for result.Next() {
 
