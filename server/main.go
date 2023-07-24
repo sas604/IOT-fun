@@ -20,7 +20,7 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
-func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
+func monitorMeasurement(d influxdb2.Client, c MQTT.Client, wsb *server.WsBroker) {
 
 	fmt.Println("Automation runing")
 	tempTarget, err := strconv.ParseFloat(os.Getenv("TARGET_TEMP"), 64)
@@ -51,10 +51,9 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 			// handle error
 			fmt.Println("Error in DB query : ")
 			fmt.Println(err)
-			return
+			continue
 		}
 		for result.Next() {
-
 			switch field := result.Record().Field(); field {
 			case "hum":
 				v := result.Record().Value().(float64)
@@ -86,7 +85,7 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client) {
 			}
 
 		}
-
+		wsb.Broadcast <- []byte("Test....")
 	}
 }
 
@@ -96,8 +95,9 @@ func main() {
 		fmt.Print(err.Error())
 		log.Fatal("Error loading .env file")
 	}
-	srv := server.NewServer()
+	srv, wsb := server.NewServer()
 	fmt.Println("starting server")
+
 	err = db.ConnectToInfluxDb()
 	if err != nil {
 		fmt.Print(err.Error())
@@ -107,7 +107,7 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	go monitorMeasurement(db.DB, m.Client)
+	go monitorMeasurement(db.DB, m.Client, wsb)
 
 	<-c
 	server.KillServer(srv)
