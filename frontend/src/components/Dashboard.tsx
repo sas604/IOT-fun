@@ -29,7 +29,7 @@ function Dashboard() {
   );
 }
 const DashBoardStyle = styled.div`
-  padding: 0 20px;
+  padding: 0 20px 20px;
   background-color: ${({ theme }) => theme.color.tertiary};
   min-height: 100vh;
   h1 {

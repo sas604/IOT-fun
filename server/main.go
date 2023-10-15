@@ -31,13 +31,14 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client, wsb *server.WsBroker)
 	if err != nil {
 		fmt.Printf("Handle conversion error")
 	}
-	//coTarget, err := strconv.ParseFloat(os.Getenv("TARGET_CO"), 64)
+
+	coTarget, err := strconv.ParseInt(os.Getenv("TARGET_CO"), 0, 0)
 
 	if err != nil {
 		fmt.Printf("Handle conversion error")
 	}
 
-	p := plug.NewPlug(map[string]string{"hum": "off", "temp": "off", "co": "off", "light": "off"})
+	p := plug.NewPlug(map[string]string{"hum": "off", "temp": "off", "co": "off", "light": "off", "tube_hum": "off", "tube_temp": "off"})
 	for range time.Tick(time.Second * 10) {
 		queryAPI := d.QueryAPI("me")
 		fluxQuery := `from(bucket: "iot-fun")
@@ -57,27 +58,30 @@ func monitorMeasurement(d influxdb2.Client, c MQTT.Client, wsb *server.WsBroker)
 			switch field := result.Record().Field(); field {
 			case "hum":
 				v := result.Record().Value().(float64)
-				if v > humTarget && p.Switches["hum"].FSM.Current() == "on" {
+				if v > humTarget {
 					p.SetSwitchStates("hum", "off")
 				}
-				if v < humTarget && p.Switches["hum"].FSM.Current() == "off" {
+				if v < humTarget {
 					p.SetSwitchStates("hum", "on")
 				}
 
 			case "temp":
 
 				v := result.Record().Value().(float64)
-				if v > tempTarget && p.Switches["temp"].FSM.Current() == "on" {
+				if v > tempTarget {
 					p.SetSwitchStates("temp", "off")
 				}
-				if v < tempTarget && p.Switches["temp"].FSM.Current() == "off" {
+				if v < tempTarget {
 					p.SetSwitchStates("temp", "on")
 				}
-			// case "co":
-			// 	v := result.Record().Value().(float64)
-			// 	if v > coTarget {
-			// 		fmt.Println(v, coTarget)
-			// 	}
+			case "co":
+				v := int(result.Record().Value().(float64))
+				fmt.Println(v, coTarget)
+				if v > int(coTarget)+200 {
+					p.SetSwitchStates("co", "on")
+				} else if v < int(coTarget)-100 {
+					p.SetSwitchStates("co", "off")
+				}
 
 			default:
 				//fmt.Printf("unrecognized field %s.\n", field)

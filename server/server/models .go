@@ -20,10 +20,12 @@ type SwitchWithState struct {
 }
 
 var MeasurmentToMesMap = map[string]string{
-	"temp":  "Temperature",
-	"hum":   "Humidity",
-	"co":    "CO2",
-	"light": "Light",
+	"temp":      "Temperature",
+	"hum":       "Humidity",
+	"co":        "CO2",
+	"light":     "Light",
+	"tube_hum":  "Tube Humidity",
+	"tube_temp": "Tube Temperature",
 }
 
 var getAllStateQ = `from(bucket: "iot-fun")
@@ -43,6 +45,7 @@ func GetAllSwitchesWithState() ([]SwitchWithState, error) {
 	var res []SwitchWithState
 	for result.Next() {
 		key := result.Record().ValueByKey("outlet").(string)
+
 		m, ok := MeasurmentToMesMap[key]
 		if !ok {
 			continue
@@ -93,7 +96,6 @@ func GetAllSwitchesWithState() ([]SwitchWithState, error) {
 		res = append(res, s)
 
 	}
-
 	return res, nil
 
 }
