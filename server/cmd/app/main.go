@@ -16,12 +16,12 @@ import (
 type config struct {
 	port int
 	env  string
-	db   struct {
-		dsn          string
-		maxOpenConns int
-		maxIdleConns int
-		maxIdleTime  time.Duration
-	}
+	// db   struct {
+	// 	dsn          string
+	// 	maxOpenConns int
+	// 	maxIdleConns int
+	// 	maxIdleTime  time.Duration
+	// }
 	influxDB struct {
 		influxToken string
 		influxURL   string
@@ -61,6 +61,7 @@ type application struct {
 
 func main() {
 	var cfg config
+	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.influxDB.influxToken, "influx-token", "", "Influx DB Token")
 	flag.StringVar(&cfg.influxDB.influxURL, "influx-url", "http://192.168.1.106:8086", "Influx url")
@@ -71,20 +72,24 @@ func main() {
 
 	flag.Parse()
 
-	loger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	influxClient, err := newInfluxClient(cfg)
 	if err != nil {
-		loger.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 
 	defer influxClient.Close()
-	loger.Info("get influx client")
+	logger.Info("get influx client")
+	app := &application{
+		config: cfg,
+		logger: logger,
+	}
 
-	mqttClient, err := newMQTTClient(cfg)
+	mqttClient, err := app.newMQTTClient(cfg)
 	if err != nil {
-		loger.Error(err.Error())
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer mqttClient.Disconnect(100)
@@ -94,6 +99,9 @@ func main() {
 	// 	config: cfg,
 	// 	logger: loger,
 	// }
+	for {
+		time.Sleep(10 * time.Second)
+	}
 
 }
 
@@ -110,11 +118,12 @@ func newInfluxClient(cfg config) (influxdb2.Client, error) {
 
 }
 
-func newMQTTClient(cfg config) (mqtt.Client, error) {
+func (app *application) newMQTTClient(cfg config) (mqtt.Client, error) {
 	options := mqtt.NewClientOptions().AddBroker(cfg.mqtt.brokerAddr)
 	options.SetUsername(cfg.mqtt.userName)
 	options.SetPassword(cfg.mqtt.password)
 	options.SetOrderMatters(false)
+	options.OnConnect = app.mqqtHandler
 	client := mqtt.NewClient(options)
 
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
