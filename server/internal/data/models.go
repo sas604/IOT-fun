@@ -8,8 +8,8 @@ type Models struct {
 	Measurements MeasurementsModel
 }
 
-func NewModels(influxDB *influxdb2.Client) Models {
+func NewModels(influxDB influxdb2.Client) Models {
 	return Models{
-		Measurements: MeasurementsModel{influxDb: *influxDB},
+		Measurements: MeasurementsModel{influxDb: influxDB},
 	}
 }

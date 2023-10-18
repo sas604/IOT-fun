@@ -11,6 +11,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/sas604/IOT-fun/server/internal/data"
 )
 
 type config struct {
@@ -26,6 +27,7 @@ type config struct {
 		influxToken string
 		influxURL   string
 		bucket      string
+		org         string
 	}
 
 	mqtt struct {
@@ -54,7 +56,7 @@ type config struct {
 type application struct {
 	config config
 	logger *slog.Logger
-	// models data.Models
+	models data.Models
 	// mailer mailer.Mailer
 	// wg     sync.WaitGroup
 }
@@ -66,6 +68,7 @@ func main() {
 	flag.StringVar(&cfg.influxDB.influxToken, "influx-token", "", "Influx DB Token")
 	flag.StringVar(&cfg.influxDB.influxURL, "influx-url", "http://192.168.1.106:8086", "Influx url")
 	flag.StringVar(&cfg.influxDB.bucket, "bucket", "monitoring", "Influx bucket name")
+	flag.StringVar(&cfg.influxDB.org, "org", "me", "Influx org name")
 	flag.StringVar(&cfg.mqtt.brokerAddr, "mqqt-url", "tcp://192.168.1.106:1883", "Mqtt broker url")
 	flag.StringVar(&cfg.mqtt.password, "mqtt-password", os.Getenv("MQTT_PASS"), "Mqtt broker password")
 	flag.StringVar(&cfg.mqtt.userName, "mqtt-user-name", os.Getenv("MQTT_USER_NAME"), "Mqtt broker user Name")
@@ -85,6 +88,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(influxClient),
 	}
 
 	mqttClient, err := app.newMQTTClient(cfg)
