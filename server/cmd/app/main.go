@@ -65,7 +65,7 @@ func main() {
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.influxDB.influxToken, "influx-token", "", "Influx DB Token")
+	flag.StringVar(&cfg.influxDB.influxToken, "influx-token", os.Getenv("INFLUX_TOKEN"), "Influx DB Token")
 	flag.StringVar(&cfg.influxDB.influxURL, "influx-url", "http://192.168.1.106:8086", "Influx url")
 	flag.StringVar(&cfg.influxDB.bucket, "bucket", "monitoring", "Influx bucket name")
 	flag.StringVar(&cfg.influxDB.org, "org", "me", "Influx org name")
@@ -84,7 +84,7 @@ func main() {
 	}
 
 	defer influxClient.Close()
-	logger.Info("get influx client")
+	logger.Info("got influx client")
 	app := &application{
 		config: cfg,
 		logger: logger,
@@ -93,7 +93,8 @@ func main() {
 
 	mqttClient, err := app.newMQTTClient(cfg)
 	if err != nil {
-		logger.Error(err.Error())
+
+		logger.Error("error setting up mqtt controler " + err.Error())
 		os.Exit(1)
 	}
 	defer mqttClient.Disconnect(100)
@@ -110,6 +111,7 @@ func main() {
 }
 
 func newInfluxClient(cfg config) (influxdb2.Client, error) {
+
 	client := influxdb2.NewClient(cfg.influxDB.influxURL, cfg.influxDB.influxToken)
 
 	//validate client connection health

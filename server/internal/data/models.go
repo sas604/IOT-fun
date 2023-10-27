@@ -1,7 +1,13 @@
 package data
 
 import (
+	"errors"
+
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+)
+
+var (
+	ErrRecordNotFound = errors.New("record not found")
 )
 
 type Models struct {

@@ -3,7 +3,6 @@ package data
 import (
 	"context"
 	"fmt"
-	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
@@ -23,10 +22,9 @@ type Measurements struct {
 
 func (m MeasurementsModel) Insert(mes *Measurements, org string, bucket string) error {
 	writeAPI := m.influxDb.WriteAPIBlocking(org, bucket)
-	p := fmt.Sprintf("%s,sensor=sht-31 temp=%f,hum=%f,co=%f,tube_hum=%f,tube_temp=%f", mes.Measurement, mes.Temp, mes.Hum, mes.CO, mes.TubeHum, mes.TubeTemp)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	p := fmt.Sprintf("%s,sensor=sht-31 temp=%f,hum=%f,co=%f,tube_hum=%f,tube_temp=%f", "farm", mes.Temp, mes.Hum, mes.CO, mes.TubeHum, mes.TubeTemp)
 
-	return writeAPI.WriteRecord(ctx, p)
+	writeAPI.WriteRecord(context.Background(), p)
 
+	return nil
 }
