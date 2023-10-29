@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
-	"fmt"
 	"os"
 	"time"
 
@@ -11,18 +11,13 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/sas604/IOT-fun/server/internal/data"
 )
 
 type config struct {
-	port int
-	env  string
-	// db   struct {
-	// 	dsn          string
-	// 	maxOpenConns int
-	// 	maxIdleConns int
-	// 	maxIdleTime  time.Duration
-	// }
+	port     int
+	env      string
 	influxDB struct {
 		influxToken string
 		influxURL   string
@@ -62,6 +57,7 @@ type application struct {
 }
 
 func main() {
+
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
@@ -85,21 +81,40 @@ func main() {
 
 	defer influxClient.Close()
 	logger.Info("got influx client")
+
+	db, err := sql.Open("sqlite3", "./sqlite.db")
+
+	if err != nil {
+		logger.Error("error conecting to db", "error", err.Error())
+		os.Exit(1)
+	}
+	err = db.Ping()
+	if err != nil {
+		logger.Error("error conecting to db", "error", err.Error())
+		os.Exit(1)
+	}
+
+	defer db.Close()
+
+	logger.Info("connected to the db")
+
+	var mqttClient mqtt.Client
+
 	app := &application{
 		config: cfg,
 		logger: logger,
-		models: data.NewModels(influxClient),
 	}
 
-	mqttClient, err := app.newMQTTClient(cfg)
+	mqttClient, err = app.newMQTTClient(cfg)
 	if err != nil {
-
 		logger.Error("error setting up mqtt controler " + err.Error())
 		os.Exit(1)
 	}
 	defer mqttClient.Disconnect(100)
 
-	fmt.Println(mqttClient.IsConnected())
+	logger.Info("Conected to mqtt")
+
+	app.models = data.NewModels(influxClient, db, mqttClient)
 	// app := &application{
 	// 	config: cfg,
 	// 	logger: loger,

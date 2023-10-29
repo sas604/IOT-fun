@@ -17,9 +17,14 @@ func (app *application) hadleIncomingMeasurements(c mqtt.Client, m mqtt.Message)
 	}
 	err = app.models.Measurements.Insert(&mes, app.config.influxDB.org, app.config.influxDB.bucket)
 	if err != nil {
-		app.logger.Error("failed insert", err.Error())
+		app.logger.Error("failed insert", "error", err.Error())
 		return
 	}
+
+	mesMap := map[string]float64{
+		"temp": mes.Temp,
+	}
+	app.handleMonitoring(mesMap)
 
 }
 

@@ -8,10 +8,10 @@ import json
 import supervisor
 
 switches = {
-    'hum': 'A0',
-    'temp': 'A1',
-    'co': 'A2',
-    'light': 'A3'
+    '1': 'A0',
+    '2': 'A1',
+    '3': 'A2',
+    '4': 'A3'
 }
 pins = {}
 for x in switches:
@@ -41,7 +41,6 @@ mqtt_topic = 'mush/switch-group'
 
 def connected(client, userdata, flags, rc):
     print("connected")
-
     client.subscribe(mqtt_topic + '/setall')
 
 
@@ -61,39 +60,14 @@ def handlBtnPress():
         pins[pin].value = not pins[pin].value
 
 
-def humHandler(client, topic, message):
-    print('Recived hum')
-    try:
-        msg = json.loads(message)
-    except ValueError:
-        print("Error parsing message")
-    print(msg)
-    if (msg['value'] == 'on'):
-        pins[switches[msg['switch']]].value = False
-        time.sleep(5)
-        pins['TX'].value = False
-        print('enter')
-        time.sleep(0.5)
-        print('Leave')
-        pins['TX'].value = True
-
-    if (msg['value'] == 'off'):
-        pins[switches[msg['switch']]].value = True
-
-
 def message(client, topic, message):
-    print("New message on topic {0}: {1}".format(topic, message))
-    try:
-        msg = json.loads(message)
-    except ValueError:
-        print("Error parsing message")
-    if ('switch' in msg and msg['switch'] in switches):
-        print('message: set ' + msg['switch'] + ' to ' + msg['value'])
-        if (msg['value'] == 'on'):
-            pins[switches[msg['switch']]].value = False
+    id = topic.split('/').pop()
+    if (id in switches):
+        if (message == 'on'):
+            pins[switches[id]].value = False
 
-        if (msg['value'] == 'off'):
-            pins[switches[msg['switch']]].value = True
+        if (message == 'off'):
+            pins[switches[id]].value = True
 
 
 wifi.radio.connect(secrets.network_id, secrets.password)
@@ -111,12 +85,9 @@ mqtt_client = MQTT.MQTT(
 mqtt_client.on_connect = connected
 mqtt_client.on_message = message
 mqtt_client.add_topic_callback('mush/switch-group/setall', handleAll)
-mqtt_client.will_set(mqtt_topic + '/controllerStatus', 'ofline', 0, True)
-for name in switches:
-    if name == "hum":
-        mqtt_client.add_topic_callback(mqtt_topic+'/set/' + name, humHandler)
-        continue
-    mqtt_client.add_topic_callback(mqtt_topic+'/set/' + name, message)
+mqtt_client.will_set(mqtt_topic + '/controllerStatus', 'offline', 0, True)
+mqtt_client.add_topic_callback(mqtt_topic+'/set/+',  message)
+
 mqtt_client.connect()
 
 mqtt_client.publish(mqtt_topic + '/controllerStatus', 'online', True, 0)

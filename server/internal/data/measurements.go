@@ -12,7 +12,7 @@ type MeasurementsModel struct {
 }
 
 type Measurements struct {
-	Measurement string  `json:"measurment,omitempty"`
+	Measurement string  `json:"measurment,omitempty"` //TODO fix typo in sensor
 	Temp        float64 `json:"temp,omitempty"`
 	Hum         float64 `json:"hum,omitempty"`
 	CO          float64 `json:"co,omitempty"`
