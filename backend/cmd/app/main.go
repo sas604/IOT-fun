@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"flag"
 	"os"
-	"time"
+	"sync"
 
 	"log/slog"
 
@@ -53,13 +53,13 @@ type application struct {
 	logger *slog.Logger
 	models data.Models
 	// mailer mailer.Mailer
-	// wg     sync.WaitGroup
+	wg sync.WaitGroup
 }
 
 func main() {
 
 	var cfg config
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
+	flag.IntVar(&cfg.port, "port", 8080, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 	flag.StringVar(&cfg.influxDB.influxToken, "influx-token", os.Getenv("INFLUX_TOKEN"), "Influx DB Token")
 	flag.StringVar(&cfg.influxDB.influxURL, "influx-url", "http://192.168.1.106:8086", "Influx url")
@@ -119,10 +119,11 @@ func main() {
 	// 	config: cfg,
 	// 	logger: loger,
 	// }
-	for {
-		time.Sleep(1 * time.Second)
+	err = app.listnAndServe()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
-
 }
 
 func newInfluxClient(cfg config) (influxdb2.Client, error) {

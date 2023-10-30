@@ -9,6 +9,7 @@ require (
 
 require (
 	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/stretchr/testify v1.8.3 // indirect
 )
 
