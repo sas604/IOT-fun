@@ -77,7 +77,6 @@ func (s *SwitchModel) SetState(id int, state string) error {
 			return err
 		}
 	}
-	fmt.Println(sw.ID)
 	query := `
 		UPDATE switches
 		SET state = $1
