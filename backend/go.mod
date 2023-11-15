@@ -5,11 +5,11 @@ go 1.21
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.2
 	github.com/influxdata/influxdb-client-go/v2 v2.12.1
+	github.com/julienschmidt/httprouter v1.3.0
 )
 
 require (
 	github.com/gorilla/websocket v1.4.2 // indirect
-	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/stretchr/testify v1.8.3 // indirect
 )
 

@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS targets (
 INSERT INTO measurements (abbreviation, display_value) 
 VALUES 
     ('hum', 'Humidity'),
-    ('temp', 'Temperature');
+    ('temp', 'Temperature'),
+    ('co', 'CO2');
 
 
 INSERT INTO switches_measurements (switch_id, measurement_id) 
@@ -33,7 +34,8 @@ VALUES
 	
 INSERT INTO targets ( measurement_id, max_value, min_value,display_value)
     VALUES
-        (2, 28, 27, 'C');
+        (2, 25, 23, 'C'),
+        (1, 70, 60, '%');
 
 
 -- SELECT measurements.abbreviation, measurements.display_value, switches.name, targets.max_value, targets.min_value

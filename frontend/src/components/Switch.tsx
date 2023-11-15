@@ -1,7 +1,5 @@
 import { styled } from 'styled-components';
 import { ImSwitch } from 'react-icons/im';
-import { useMutation, useQueryClient } from 'react-query';
-import { setSwitch } from '../lib/setSwitch';
 
 export type SwitchProps = {
   state: 'off' | 'on';
@@ -24,32 +22,6 @@ const Switch: React.FC<SwitchProps> = ({
   id,
   idx,
 }) => {
-  const queryClient = useQueryClient();
-  const mutation = useMutation(setSwitch, {
-    onMutate: async (newState) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      console.log(newState);
-      await queryClient.cancelQueries('switches');
-
-      const previousState = queryClient.getQueryData<SwitchProps[]>('switches');
-      if (previousState) {
-        previousState[newState.idx].state = newState.state;
-
-        queryClient.setQueryData<SwitchProps[]>('switches', previousState);
-      }
-
-      // Return a context object with the snapshotted value
-      return { previousState };
-    },
-    onError: (err, newState, context) => {
-      if (context?.previousState) {
-        queryClient.setQueryData('switches', context.previousState);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries('switches');
-    },
-  });
   return (
     <SwitchStyle>
       <h2>{measurment}</h2>
@@ -62,16 +34,7 @@ const Switch: React.FC<SwitchProps> = ({
           </p>
         </div>
         <SwitchToggleStyle $active={state === 'on'}>
-          <button
-            onClick={(e) =>
-              mutation.mutate({
-                name: measurment,
-                state: state === 'on' ? 'off' : 'on',
-                id,
-                idx,
-              })
-            }
-          >
+          <button onClick={(e) => console.log(e)}>
             <ImSwitch></ImSwitch>
           </button>
           <input

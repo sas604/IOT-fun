@@ -44,6 +44,7 @@ func (app *application) listnAndServe() error {
 	app.logger.Info("starting server", "addr", srv.Addr, "env", app.config.env)
 
 	err := srv.ListenAndServe()
+	app.logger.Info("recived error from srv", "e", err.Error())
 	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

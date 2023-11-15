@@ -97,6 +97,6 @@ func (s *SwitchModel) SetState(id int, state string) error {
 	}
 	s.MQTT.Publish(sw.TopicBase+"/set/"+strconv.Itoa(sw.ID), 0, true, sw.LastState)
 
-	fmt.Printf("Change status of %s to %s", sw.Name, sw.LastState)
+	fmt.Printf("Change status of %s to %s \n", sw.Name, sw.LastState)
 	return nil
 }

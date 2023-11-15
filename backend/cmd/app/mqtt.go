@@ -23,6 +23,7 @@ func (app *application) hadleIncomingMeasurements(c mqtt.Client, m mqtt.Message)
 
 	mesMap := map[string]float64{
 		"temp": mes.Temp,
+		"hum":  mes.Hum,
 	}
 	app.handleMonitoring(mesMap)
 

@@ -16,6 +16,11 @@ type Automation struct {
 	MinValue           float64
 }
 
+type Job struct {
+	Interval time.Duration
+	duration time.Duration
+}
+
 type AutomationModel struct {
 	DB *sql.DB
 }

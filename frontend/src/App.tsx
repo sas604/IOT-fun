@@ -7,7 +7,7 @@ import type {} from 'styled-components/cssprop';
 import { Dashboard } from './components/Dashboard';
 import { ThemeProvider } from 'styled-components';
 import { theme } from './styles/Theme';
-import { QueryClientProvider, QueryClient } from 'react-query';
+import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 const queryClient = new QueryClient();
 function App() {
   return (

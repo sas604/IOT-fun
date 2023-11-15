@@ -1,16 +1,30 @@
 import { styled } from 'styled-components';
-
 import { SwitchList } from './SwitchList';
-import { useQuery } from 'react-query';
+import { SwitchProps } from './Switch';
+import { useQuery } from '@tanstack/react-query';
+
+async function fetchSwitches(): Promise<SwitchProps[]> {
+  const res = await fetch('/api/switches');
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+}
 
 function Dashboard() {
-  const { data, isLoading, isError } = useQuery('switches', async () => {
-    const res = await fetch('/api/switches');
-    if (!res.ok) {
-      throw new Error('Network response was not ok');
-    }
-    return res.json();
+  const { isError, error, isLoading, data } = useQuery({
+    queryKey: ['switches'],
+    queryFn: fetchSwitches,
   });
+
+  if (isError) {
+    return (
+      <DashBoardStyle>
+        <h1>Dashboard</h1>
+        <p css="color:white">{error.message}</p>
+      </DashBoardStyle>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -20,13 +34,15 @@ function Dashboard() {
       </DashBoardStyle>
     );
   }
-  return (
-    <DashBoardStyle>
-      <h1>Dashboard</h1>
-      <div></div>
-      <SwitchList switches={data} />
-    </DashBoardStyle>
-  );
+  if (data) {
+    return (
+      <DashBoardStyle>
+        <h1>Dashboard</h1>
+        <div></div>
+        <SwitchList switches={data} />
+      </DashBoardStyle>
+    );
+  }
 }
 const DashBoardStyle = styled.div`
   padding: 0 20px 20px;

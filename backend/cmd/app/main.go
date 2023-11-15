@@ -119,6 +119,7 @@ func main() {
 	// 	config: cfg,
 	// 	logger: loger,
 	// }
+
 	err = app.listnAndServe()
 	if err != nil {
 		logger.Error(err.Error())
