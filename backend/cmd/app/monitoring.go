@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"sync"
 	"time"
+
+	"github.com/sas604/IOT-fun/server/internal/data"
 )
 
 // check if measurement exsit and has switch and target valuse assosiated with it
 // check if action needed and handle it if so.
 func (app *application) handleMonitoring(measurements map[string]float64) {
-	fmt.Println(measurements)
 	for abb, val := range measurements {
 		au, err := app.models.Automations.GetAutomationData(abb)
-		fmt.Println(au)
-		fmt.Println(val)
 		if err != nil {
 			app.logger.Error("error gettingautomations", "error", err.Error())
 			continue
@@ -37,13 +37,44 @@ func (app *application) handleMonitoring(measurements map[string]float64) {
 
 }
 
-func (app *application) handlePeriodicTasks(interval time.Duration, fn func()) {
-	ticker := time.NewTicker(interval)
+func (app *application) handlePeriodicTasks() {
+	jobs, err := app.models.Automations.GetJobData()
+	if err != nil {
+		app.logger.Error(err.Error())
+	}
 
-	go func() {
-		for t := range ticker.C {
-			fmt.Println("Tick at", t)
-		}
-	}()
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	for _, j := range jobs {
+		wg.Add(1)
+		go func(j *data.Job) {
+			defer wg.Done()
+			ticker := time.NewTicker(time.Duration(j.Interval) * time.Minute)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					ticker.Stop()
+					return
+				case <-ticker.C:
+					ticker.Stop()
+					err := app.models.Switches.SetState(j.Switch, j.OnStart)
+					if err != nil {
+						app.logger.Error("error in job scheduler ", "error", err)
+						cancel()
+						return
+					}
+					t := time.NewTimer(time.Duration(j.Duration) * time.Minute)
+					go func() {
+						<-t.C
+						app.models.Switches.SetState(j.Switch, j.OnEnd)
+						ticker.Reset(3 * time.Second)
+					}()
+				}
 
+			}
+		}(j)
+	}
+	wg.Wait()
 }

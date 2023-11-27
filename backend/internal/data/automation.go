@@ -17,8 +17,8 @@ type Automation struct {
 }
 
 type Job struct {
-	Interval time.Duration
-	Duration time.Duration
+	Interval int
+	Duration int
 	Switch   int
 	OnStart  string
 	OnEnd    string

@@ -119,7 +119,7 @@ func main() {
 	// 	config: cfg,
 	// 	logger: loger,
 	// }
-
+	go app.handlePeriodicTasks()
 	err = app.listnAndServe()
 	if err != nil {
 		logger.Error(err.Error())

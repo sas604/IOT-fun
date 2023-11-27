@@ -67,7 +67,7 @@ func (s SwitchModel) GetOneByID(id int) (*Switch, error) {
 }
 
 func (s *SwitchModel) SetState(id int, state string) error {
-
+	fmt.Printf("Switch %d set to %s \n", id, state)
 	sw, err := s.GetOneByID(id)
 	if err != nil {
 		switch {
@@ -96,7 +96,5 @@ func (s *SwitchModel) SetState(id int, state string) error {
 		}
 	}
 	s.MQTT.Publish(sw.TopicBase+"/set/"+strconv.Itoa(sw.ID), 0, true, sw.LastState)
-
-	fmt.Printf("Change status of %s to %s \n", sw.Name, sw.LastState)
 	return nil
 }
