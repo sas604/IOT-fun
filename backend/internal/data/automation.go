@@ -18,7 +18,10 @@ type Automation struct {
 
 type Job struct {
 	Interval time.Duration
-	duration time.Duration
+	Duration time.Duration
+	Switch   int
+	OnStart  string
+	OnEnd    string
 }
 
 type AutomationModel struct {
@@ -51,4 +54,41 @@ func (a *AutomationModel) GetAutomationData(abb string) (*Automation, error) {
 	}
 
 	return &au, nil
+}
+
+func (a *AutomationModel) GetJobData() ([]*Job, error) {
+	jobs := []*Job{}
+
+	query :=
+		`SELECT interval, duration, switch, on_start, on_end 
+			FROM jobs`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := a.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var job Job
+
+		err := rows.Scan(
+			&job.Interval,
+			&job.Duration,
+			&job.Switch,
+			&job.OnStart,
+			&job.OnEnd,
+		)
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, &job)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return jobs, nil
 }

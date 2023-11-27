@@ -37,13 +37,13 @@ func (app *application) handleMonitoring(measurements map[string]float64) {
 
 }
 
-func (app *application) handlePeriodicTasks(interval time.Duration, fn func()) *time.Ticker {
+func (app *application) handlePeriodicTasks(interval time.Duration, fn func()) {
 	ticker := time.NewTicker(interval)
+
 	go func() {
 		for t := range ticker.C {
 			fmt.Println("Tick at", t)
 		}
 	}()
 
-	return ticker
 }
