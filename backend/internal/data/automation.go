@@ -8,12 +8,12 @@ import (
 )
 
 type Automation struct {
-	Abbriviation       string
-	DisplayValue       string
-	Switch             int
-	CurrentSwitchState string
-	MaxValue           float64
-	MinValue           float64
+	Abbriviation       string  `json:"abbriviation"`
+	DisplayValue       string  `json:"displayValue"`
+	Switch             int     `json:"switch"`
+	CurrentSwitchState string  `json:"currentState"`
+	MaxValue           float64 `json:"max"`
+	MinValue           float64 `json:"min"`
 }
 
 type Job struct {

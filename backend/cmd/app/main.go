@@ -114,11 +114,8 @@ func main() {
 
 	logger.Info("Conected to mqtt")
 
-	app.models = data.NewModels(influxClient, db, mqttClient)
-	// app := &application{
-	// 	config: cfg,
-	// 	logger: loger,
-	// }
+	app.models = data.NewModels(influxClient, db, mqttClient, app.config.influxDB.org, app.config.influxDB.bucket)
+
 	go app.handlePeriodicTasks()
 	err = app.listnAndServe()
 	if err != nil {

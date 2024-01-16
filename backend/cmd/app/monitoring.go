@@ -69,7 +69,7 @@ func (app *application) handlePeriodicTasks() {
 					go func() {
 						<-t.C
 						app.models.Switches.SetState(j.Switch, j.OnEnd)
-						ticker.Reset(3 * time.Second)
+						ticker.Reset(time.Duration(j.Interval) * time.Minute)
 					}()
 				}
 

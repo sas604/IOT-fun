@@ -2,13 +2,18 @@ package data
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
 type MeasurementsModel struct {
 	influxDb influxdb2.Client
+	DB       *sql.DB
+	org      string
+	bucket   string
 }
 
 type Measurements struct {
@@ -27,4 +32,28 @@ func (m MeasurementsModel) Insert(mes *Measurements, org string, bucket string) 
 	writeAPI.WriteRecord(context.Background(), p)
 
 	return nil
+}
+
+func (m MeasurementsModel) GetMeasurementMap() (map[string]float64, error) {
+	queryAPI := m.influxDb.QueryAPI(m.org)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		from(bucket: "monitoring")
+  		|> range(start: 0)
+  		|> filter(fn: (r) => r["_measurement"] == "farm")
+  		|> last()`
+
+	rows, err := queryAPI.Query(ctx, query)
+
+	if err != nil {
+		return nil, err
+	}
+	ms := map[string]float64{}
+	for rows.Next() {
+		ms[rows.Record().Field()] = (rows.Record().Value()).(float64)
+	}
+
+	return ms, nil
 }

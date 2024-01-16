@@ -3,8 +3,8 @@ import { SwitchList } from './SwitchList';
 import { SwitchProps } from './Switch';
 import { useQuery } from '@tanstack/react-query';
 
-async function fetchSwitches(): Promise<SwitchProps[]> {
-  const res = await fetch('/api/switches');
+async function fetchSwitches(): Promise<{switches:SwitchProps[]}> {
+  const res = await fetch('api/switches');
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -39,7 +39,7 @@ function Dashboard() {
       <DashBoardStyle>
         <h1>Dashboard</h1>
         <div></div>
-        <SwitchList switches={data} />
+        <SwitchList switches={data.switches} />
       </DashBoardStyle>
     );
   }

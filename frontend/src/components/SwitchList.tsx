@@ -8,18 +8,10 @@ export type SwitchList = {
 const SwitchList: React.FC<SwitchList> = ({ switches }) => {
   return (
     <SwitchListStyles>
-      {switches.map(
-        ({ state, measurment, value, target, autoControl, unit, id }, idx) => (
-          <li key={measurment}>
+      {switches.map((switchData) => (
+          <li key={switchData.name}>
             <Switch
-              state={state}
-              measurment={measurment}
-              target={target}
-              value={value}
-              autoControl={autoControl}
-              unit={unit}
-              id={id}
-              idx={idx}
+              switchData = {switchData}
             ></Switch>
           </li>
         )
